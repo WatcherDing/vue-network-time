@@ -1,0 +1,63 @@
+{
+  "name": "vue-network-time",
+  "version": "1.0.0",
+  "description": "生产级 Vue 3 网络时间同步 SDK，支持多时间源、Web Worker、时区格式化等企业级特性",
+  "type": "module",
+  "main": "./dist/vue-network-time.umd.cjs",
+  "module": "./dist/vue-network-time.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/vue-network-time.js",
+      "require": "./dist/vue-network-time.umd.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./worker": {
+      "import": "./dist/time.worker.js",
+      "types": "./dist/worker/time.worker.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run type-check && vite build && npm run build:types",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "type-check": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "vue",
+    "vue3",
+    "time",
+    "network-time",
+    "time-sync",
+    "ntp",
+    "web-worker",
+    "timezone",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@vitejs/plugin-vue": "^6.0.3",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11",
+    "vite-plugin-dts": "^3.7.0",
+    "vue": "^3.4.15"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WatcherDing/vue-network-time.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WatcherDing/vue-network-time/issues"
+  }
+}
