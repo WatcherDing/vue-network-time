@@ -52,6 +52,17 @@ export class TimeParser {
     }
 
     if (typeof value === 'string') {
+      // 尝试解析数字字符串 (例如 "1706500000.123")
+      if (format === 's' || format === 'ms') {
+        const num = parseFloat(value)
+        if (!isNaN(num) && isFinite(num)) {
+          if (format === 's') {
+            return num * 1000
+          }
+          return num
+        }
+      }
+
       // ISO 字符串或其他字符串格式
       const parsed = new Date(value).getTime()
       if (isNaN(parsed)) {

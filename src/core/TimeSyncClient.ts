@@ -4,6 +4,18 @@ import { DriftCorrector } from './DriftCorrector'
 import { RetryStrategy } from './RetryStrategy'
 import { Timezone } from './Timezone'
 
+// Cloudflare Trace API URLs (Fallback)
+const DEFAULT_CLOUDFLARE_URLS = [
+  'https://one.one.one.one/cdn-cgi/trace',
+  'https://1.0.0.1/cdn-cgi/trace',
+  'https://cloudflare-dns.com/cdn-cgi/trace',
+  'https://cloudflare-eth.com/cdn-cgi/trace',
+  'https://workers.dev/cdn-cgi/trace',
+  'https://pages.dev/cdn-cgi/trace',
+  'https://cloudflare.tv/cdn-cgi/trace',
+  'https://icanhazip.com/cdn-cgi/trace'
+]
+
 /**
  * 时间同步客户端
  * 核心时间同步逻辑的协调器
@@ -47,18 +59,40 @@ export class TimeSyncClient {
    * 合并默认选项
    */
   private mergeDefaultOptions(options: NetworkTimeOptions): Required<NetworkTimeOptions> {
+    const hasUrl = !!(options.url || (options.urls && options.urls.length > 0))
+    const finalUrls = options.urls || (options.url ? [options.url] : [])
+
+    // 如果未配置 URL，使用 Cloudflare 默认源
+    const urls = hasUrl ? finalUrls : DEFAULT_CLOUDFLARE_URLS
+    
+    // 针对 Cloudflare 默认源的特殊配置
+    const timeField = options.timeField || (hasUrl ? 'time' : 'ts')
+    const timeFormat = options.timeFormat || (hasUrl ? 'ms' : 's')
+    
+    // 如果使用默认源，打乱顺序以负载均衡
+    if (!hasUrl) {
+      // Fisher-Yates shuffle
+      for (let i = urls.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [urls[i], urls[j]] = [urls[j], urls[i]];
+      }
+    }
+
+    // 默认源不需要重试（因为有多个节点作为备份）
+    const defaultRetryTimes = hasUrl ? 3 : 0
+
     return {
       url: options.url || '',
-      urls: options.urls || (options.url ? [options.url] : []),
+      urls: urls,
       urlStrategy: options.urlStrategy || 'first-success',
       syncInterval: options.syncInterval ?? 60000,
       tickInterval: options.tickInterval ?? 1000,
       timezone: options.timezone || '',
-      timeField: options.timeField || 'time',
-      timeFormat: options.timeFormat || 'ms',
+      timeField: timeField,
+      timeFormat: timeFormat,
       parseTime: options.parseTime || undefined,
       retry: {
-        times: options.retry?.times ?? 3,
+        times: options.retry?.times ?? defaultRetryTimes,
         interval: options.retry?.interval ?? 1000,
         backoff: options.retry?.backoff ?? true
       },
@@ -229,7 +263,26 @@ export class TimeSyncClient {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    let data: any
+    const contentType = response.headers.get('content-type')
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json()
+    } else {
+      const text = await response.text()
+      try {
+        data = JSON.parse(text)
+      } catch {
+        // 解析 key=value 格式 (例如 Cloudflare trace)
+        data = text.trim().split('\n').reduce((acc, line) => {
+          const [key, value] = line.split('=')
+          if (key && value) {
+            acc[key.trim()] = value.trim()
+          }
+          return acc
+        }, {} as Record<string, string>)
+      }
+    }
 
     // 解析服务器时间
     const serverTime = TimeParser.parse(

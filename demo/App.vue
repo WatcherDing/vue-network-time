@@ -132,6 +132,32 @@
           </div>
         </section>
 
+        <!-- 默认模式 (Cloudflare) -->
+        <section class="card mode-card">
+          <div class="card-header">
+            <h2>☁️ 默认模式 (Cloudflare)</h2>
+            <span class="status-dot" :class="running3 ? 'active' : 'inactive'"></span>
+          </div>
+          <div class="mode-info">
+            <p>未指定 URL 时，自动使用 Cloudflare Trace API</p>
+            <div class="config-preview">
+              <code>url: (default)</code>
+              <code>timeField: ts</code>
+            </div>
+            <div style="margin-top: 10px; font-family: monospace; color: var(--text-dim);">
+              {{ formatted3 || '等待同步...' }}
+            </div>
+          </div>
+          <div class="controls">
+            <button @click="start3" :disabled="running3" class="btn btn-primary">
+              <span class="btn-icon">▶</span> 启动
+            </button>
+            <button @click="stop3" :disabled="!running3" class="btn btn-secondary">
+              <span class="btn-icon">⏹</span> 停止
+            </button>
+          </div>
+        </section>
+
         <!-- 特性展示 -->
         <section class="card features-card">
           <h2>✨ SDK 特性</h2>
@@ -303,6 +329,25 @@ const {
   }
 })
 
+// 默认模式 (Cloudflare)
+const {
+  now: now3,
+  formatted: formatted3,
+  offset: offset3,
+  running: running3,
+  start: start3,
+  stop: stop3
+} = useNetworkTime({
+  timezone: 'Asia/Shanghai',
+  syncInterval: 30000,
+  onSync: (time: number) => {
+    addLog(`默认模式(Cloudflare)同步成功: ${new Date(time).toLocaleString('zh-CN')}`, 'success')
+  },
+  onError: (err: Error) => {
+    addLog(`默认模式同步失败: ${err.message}`, 'error')
+  }
+})
+
 // 计算属性
 const timeDigits = computed(() => {
   if (!formatted1.value) return ['0', '0', ':', '0', '0', ':', '0', '0']
@@ -398,6 +443,7 @@ onMounted(() => {
   addLog('Demo 应用已启动', 'info')
   start1()
   start2()
+  start3()
   updateLocalTime()
   localTimeInterval.value = window.setInterval(updateLocalTime, 1000)
 })
