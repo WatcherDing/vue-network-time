@@ -69,18 +69,6 @@ export class TimeSyncClient {
     const timeField = options.timeField || (hasUrl ? 'time' : 'ts')
     const timeFormat = options.timeFormat || (hasUrl ? 'ms' : 's')
     
-    // 如果使用默认源，打乱顺序以负载均衡
-    if (!hasUrl) {
-      // Fisher-Yates shuffle
-      for (let i = urls.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [urls[i], urls[j]] = [urls[j], urls[i]];
-      }
-    }
-
-    // 默认源不需要重试（因为有多个节点作为备份）
-    const defaultRetryTimes = hasUrl ? 3 : 0
-
     return {
       url: options.url || '',
       urls: urls,
@@ -92,7 +80,7 @@ export class TimeSyncClient {
       timeFormat: timeFormat,
       parseTime: options.parseTime || undefined,
       retry: {
-        times: options.retry?.times ?? defaultRetryTimes,
+        times: options.retry?.times ?? 3,
         interval: options.retry?.interval ?? 1000,
         backoff: options.retry?.backoff ?? true
       },
@@ -106,6 +94,11 @@ export class TimeSyncClient {
       onTick: options.onTick || (() => {})
     } as Required<NetworkTimeOptions>
   }
+
+
+
+
+  
 
   /**
    * 启动时间同步
